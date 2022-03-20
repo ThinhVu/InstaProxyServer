@@ -12,8 +12,8 @@ https://github.com/ThinhVu/Mmosoft.In...
 Source code:
 https://github.com/ThinhVu/InstaProxy...
 
-Docker image (updating soon):
-https://hub.docker.com/u/dockerer123456
+Docker image:
+https://hub.docker.com/repository/docker/dockerer123456/insta-proxy-server
 
 I know this war will never end. And the win side is always Instagram, but I'll try my best to fight back.
 
