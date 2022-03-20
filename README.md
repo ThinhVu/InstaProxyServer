@@ -1,6 +1,6 @@
 It's been 6 years, Instagram has challenged us a lots with their *public* api.
 
-With a ton of work to implement bullshit Instagram app develop program with OAuth stuff (the same shit happen in Facebook too).
+With a ton of work to implement bullshit Instagram application with OAuth stuff (the same shit happen in Facebook too).
 
 All we want is making a curl request and the data must be present in response data. That's all.
 
