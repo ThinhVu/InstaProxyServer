@@ -39,65 +39,95 @@ const selector = {
   },
 }
 
-let browser
+let browser;
 async function login() {
   if (browser)
     return
-  await loginHeadless()
+  await loginHeadless();
+  await gatherXIGAppId();
 }
 
-async function loginWithUI() {
-  browser = await puppeteer.launch({
-    headless: false,
-    args: [
-      '--no-sandbox',
-    ]
-  })
-  const page = await browser.newPage()
-  await page.goto(selector.login.url, {
-    waitUntil: 'networkidle0',
-  });
+process.on('uncaughtException', e => console.log(e))
 
-  const click = makeClick(page)
-  await click(selector.login.username)
-  await page.keyboard.type(cred.username)
-  await click(selector.login.password)
-  await page.keyboard.type(cred.password)
-  await click(selector.login.loginBtn)
-  await page.waitForNavigation({
-    waitUntil: 'networkidle0',
-  });
+async function loginWithUI() {
+  try {
+    browser = await puppeteer.launch({
+      headless: false,
+      args: [
+        '--no-sandbox',
+      ]
+    })
+
+    const page = await browser.newPage()
+    await page.goto(selector.login.url, {
+      waitUntil: 'networkidle0',
+    });
+
+    const click = makeClick(page)
+    await click(selector.login.username)
+    await page.keyboard.type(cred.username)
+    await click(selector.login.password)
+    await page.keyboard.type(cred.password)
+    await click(selector.login.loginBtn)
+    await page.waitForNavigation({
+      waitUntil: 'networkidle0',
+    });
+  } catch (e) {
+    console.error(e)
+  }
 }
 
 let loggedIn = false;
+let xIGAppId = '';
 
 async function loginHeadless() {
-  log('LoginHeadless...')
-  browser = await puppeteer.launch({
-    headless: true,
-    args: [
-      '--no-sandbox',
-    ]
-  })
-  const page = await browser.newPage()
-  await page.goto(selector.login.url, {
-    waitUntil: 'networkidle0',
+  try {
+    log('LoginHeadless...')
+    browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+      ]
+    })
+    const page = await browser.newPage()
+    await page.goto(selector.login.url, {
+      waitUntil: 'networkidle0',
+    });
+    const click = makeClick(page)
+    log('Selecting username input...')
+    await click(selector.login.username)
+    await page.keyboard.type(cred.username)
+    log('Selecting password input...')
+    await click(selector.login.password)
+    await page.keyboard.type(cred.password)
+    log('Click login button...')
+    await click(selector.login.loginBtn)
+    await page.waitForNavigation({
+      waitUntil: 'networkidle0',
+    });
+    // TODO: ensure that login is not error!
+    log('Logged in...')
+    loggedIn = true;
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+async function gatherXIGAppId() {
+  log('gatherXIGAppId...');
+  const page = await browser.newPage();
+  await page.setRequestInterception(true);
+  page.on('request', request => {
+    const request_headers = request.headers();
+    log('request_headers', request_headers)
+    if (request_headers['x-ig-app-id']) {
+      xIGAppId = request_headers['x-ig-app-id'];
+      log('Found: x-ig-app-id', request_headers['x-ig-app-id']);
+    }
+    request.continue();
   });
-  const click = makeClick(page)
-  log('Selecting username input...')
-  await click(selector.login.username)
-  await page.keyboard.type(cred.username)
-  log('Selecting password input...')
-  await click(selector.login.password)
-  await page.keyboard.type(cred.password)
-  log('Click login button...')
-  await click(selector.login.loginBtn)
-  await page.waitForNavigation({
-    waitUntil: 'networkidle0',
-  });
-  // TODO: ensure that login is not error!
-  log('Logged in...')
-  loggedIn = true;
+  const theRockProfile = 'https://www.instagram.com/therock/'
+  await page.goto(theRockProfile, {waitUntil: 'networkidle0'});
 }
 
 async function proxy(url) {
@@ -107,6 +137,9 @@ async function proxy(url) {
 
     log('proxy to', url);
     const page = await browser.newPage();
+    if (xIGAppId) {
+      page.setExtraHTTPHeaders({ 'x-ig-app-id': xIGAppId })
+    }
     const response = await page.goto(url, { waitUntil: 'networkidle0', })
     const responseBody = await response.text();
     await page.close();
@@ -120,5 +153,6 @@ async function proxy(url) {
 
 module.exports = {
   login,
-  proxy
+  proxy,
+  gatherXIGAppId
 }
